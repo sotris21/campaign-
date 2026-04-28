@@ -1,0 +1,113 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Campaign {
+  id             String        @id @default(cuid())
+  candidateName  String
+  partyName      String
+  ward           String
+  council        String
+  electionDate   DateTime
+  facebookPageUrl String?
+  brandPrimary   String        @default("#f5c518")
+  brandSecondary String        @default("#000000")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  assets         Asset[]
+  contentPacks   ContentPack[]
+  hashtags       Hashtag[]
+}
+
+model Asset {
+  id           String        @id @default(cuid())
+  campaignId   String
+  campaign     Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  type         String        // headshot | poster | other
+  filename     String
+  url          String
+  altText      String?
+  createdAt    DateTime      @default(now())
+  contentItems ContentItem[]
+}
+
+model ContentPack {
+  id            String        @id @default(cuid())
+  campaignId    String
+  campaign      Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  dayNumber     Int
+  date          DateTime
+  theme         String
+  customContext String?
+  tone          String        @default("informative")
+  platforms     String        @default("all") // comma-separated
+  createdAt     DateTime      @default(now())
+  items         ContentItem[]
+  exportLogs    ExportLog[]
+}
+
+model ContentItem {
+  id                  String      @id @default(cuid())
+  contentPackId       String
+  contentPack         ContentPack @relation(fields: [contentPackId], references: [id], onDelete: Cascade)
+  platform            String      // facebook | instagram | tiktok
+  slot                String      // morning | afternoon | evening
+  scheduledTime       String?
+  caption             String
+  storyScript         String?
+  videoScript         String?
+  imageHint           String?
+  assetId             String?
+  asset               Asset?      @relation(fields: [assetId], references: [id])
+  altText             String?
+  hashtags            String?
+  complianceChecklist String?     // JSON string
+  factualClaims       String?     // JSON string
+  reviewNotes         String?
+  imprintReminder     String?
+  status              String      @default("draft") // draft|needs_review|approved|exported|scheduled_manually|rejected|archived
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  reviewLogs          ReviewLog[]
+}
+
+model ReviewLog {
+  id            String      @id @default(cuid())
+  contentItemId String
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  action        String      // approved | rejected | edited | noted
+  notes         String?
+  createdAt     DateTime    @default(now())
+}
+
+model ExportLog {
+  id            String      @id @default(cuid())
+  contentPackId String
+  contentPack   ContentPack @relation(fields: [contentPackId], references: [id], onDelete: Cascade)
+  format        String      // csv | json | markdown
+  filename      String?
+  createdAt     DateTime    @default(now())
+}
+
+model Hashtag {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  tag        String
+  platforms  String   @default("all") // all | facebook | instagram | tiktok
+  group      String?
+  createdAt  DateTime @default(now())
+}
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
